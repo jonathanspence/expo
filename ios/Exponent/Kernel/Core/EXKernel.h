@@ -41,8 +41,8 @@ FOUNDATION_EXPORT NSString * const kEXKernelClearJSCacheUserDefaultsKey;
       toExperienceWithId: (NSString *)experienceId
           fromBackground: (BOOL)isFromBackground
                 isRemote: (BOOL)isRemote
-                actionId: (NSString *)actionId
-                userText: (NSString *)userText;
+                actionId: (nullable NSString *)actionId
+                userText: (nullable NSString *)userText;
 
 /**
  *  Initial props to pass to an app based on LaunchOptions from UIApplicationDelegate.

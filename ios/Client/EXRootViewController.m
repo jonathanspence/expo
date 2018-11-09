@@ -178,6 +178,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)appDidFinishLoadingSuccessfully:(EXKernelAppRecord *)appRecord
 {
+  // Home lets us access experiences history. When its ready, we can flush pending notifications.
   if (appRecord == [EXKernel sharedInstance].appRegistry.homeAppRecord) {
     [[EXKernel sharedInstance] flushPendingNotifications];
   }

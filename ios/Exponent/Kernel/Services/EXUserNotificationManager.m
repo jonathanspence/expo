@@ -4,10 +4,8 @@
 #import "EXKernel.h"
 #import "EXRemoteNotificationManager.h"
 #import "EXEnvironment.h"
-#import "EXNotificationScoper.h"
 
-@interface EXUserNotificationManager()
-@end
+static NSString * const kEXSelectedActionIdentifier = @"Expo.notificationSelected";
 
 @implementation EXUserNotificationManager
 
@@ -23,9 +21,7 @@
   return theManager;
 }
 
-- (void)userNotificationCenter:(UNUserNotificationCenter *)center
-didReceiveNotificationResponse:(UNNotificationResponse *)response
-         withCompletionHandler:(void (^)(void))completionHandler
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler
 {
   BOOL isFromBackground = [UIApplication sharedApplication].applicationState != UIApplicationStateActive;
   NSDictionary *payload = response.notification.request.content.userInfo;
@@ -33,23 +29,18 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     NSDictionary *body = payload[@"body"];
     NSString *experienceId = payload[@"experienceId"];
     NSString *userText = nil;
-    NSString *actionId = @"DEFAULT_ACTION";
-    
-    if ([response.actionIdentifier isEqualToString:UNNotificationDismissActionIdentifier]) {
-      actionId = @"DISMISS_ACTION";
-    } else if (![response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier]) {
+    NSString *actionId = nil;
+
+    if (![response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier]) {
       actionId = response.actionIdentifier;
-      if (![EXEnvironment sharedEnvironment].isDetached) {
-        actionId = [EXNotificationScoper split:actionId][1];
-      }
     }
-    
+
     if ([response isKindOfClass:[UNTextInputNotificationResponse class]]) {
       userText = ((UNTextInputNotificationResponse *) response).userText;
     }
-    
+
     BOOL isRemote = [response.notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]];
-    if (body && experienceId) {
+    if (experienceId) {
       [[EXKernel sharedInstance] sendNotification:body
                                toExperienceWithId:experienceId
                                    fromBackground:isFromBackground
@@ -61,27 +52,34 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   completionHandler();
 }
 
-- (void)userNotificationCenter:(UNUserNotificationCenter *)center
-       willPresentNotification:(UNNotification *)notification
-         withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
 {
+  // With UIUserNotifications framework, notifications were only shown while the app wasn't active.
+  // Let's stick to this behavior.
+  if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive) {
+    completionHandler(UNNotificationPresentationOptionAlert + UNNotificationPresentationOptionSound);
+    return;
+  }
+
+  // If the app is active we do not show the alert, but we deliver the notification to the experience.
   NSDictionary *payload = notification.request.content.userInfo;
   if (payload) {
     NSDictionary *body = payload[@"body"];
     NSString *experienceId = payload[@"experienceId"];
     NSString *userText = nil;
-    
+
     BOOL isRemote = [notification.request.trigger isKindOfClass:[UNPushNotificationTrigger class]];
-    if (body && experienceId) {
+    if (experienceId) {
       [[EXKernel sharedInstance] sendNotification:body
                                toExperienceWithId:experienceId
                                    fromBackground:NO
                                          isRemote:isRemote
-                                         actionId:@"WILL_PRESENT_ACTION"
+                                         actionId:nil
                                          userText:userText];
     }
   }
-  completionHandler(UNNotificationPresentationOptionAlert + UNNotificationPresentationOptionSound);
+
+  completionHandler(UNNotificationPresentationOptionNone);
 }
 
 @end

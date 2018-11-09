@@ -100,7 +100,6 @@ typedef void(^EXRemoteNotificationAPNSTokenHandler)(NSData * _Nullable apnsToken
 {
   __weak id weakScopedModule = scopedModule;
   dispatch_async(_queue, ^{
-
     [self _canRegisterForRemoteNotificationsWithCompletionHandler:^(BOOL can) {
       if (!can) {
         NSError *error = [NSError errorWithDomain:kEXRemoteNotificationErrorDomain
